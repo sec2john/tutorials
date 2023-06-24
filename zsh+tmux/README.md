@@ -17,6 +17,8 @@ https://github.com/sec2john/tutorials/tree/main/zsh+tmux
 7- ponerlo en la carpeta local, renombrar a archivo oculto
 
 8- Configurar el teminal Mate -> /bin/zsh
+   # hacer zsh shell por defecto
+   chsh -s $(which zsh)
 
 9- Configurar .zshrc añadiendo la linea al principio del todo: 
 
