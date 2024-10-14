@@ -1,0 +1,36 @@
+# Esta funcion habilita el comando "nsc"
+# en la shell. 
+# Este comando crea la plantilla de un
+# script en bash ejecutable, y permite
+# ahorrar estos pasos: crear fichero,
+# crear shebang, asignar permisos de 
+# ejecución.
+# 
+# Se invoca así
+# > nsc [FILENAME]
+# Si [FILENAME] es nulo devuelve un error (1)
+# Si [FILENAME] no tiene extensión se le agrega ".sh" por defecto
+#
+# Este fichero no se ejecuta. En lugar de ello
+# copia la función y pégala en tu shell.
+# Para hacerlo permanente en bash pégala en tu .bashrc
+# en zsh es un poco más complejo (pero posible)
+# https://www.tiktok.com/@sec2john/video/7425254516297157921 
+# Made by Sec2John.
+
+function nsc() {
+name=$1
+
+[ -z $name ] && { echo "-- Error. Need a name for the script."; return 1 };
+[[ ! $name == *.* ]] && { echo "-- Warning: No extension provided. sh appended."; name="${name}.sh" };
+
+cat <<EOF > $name
+#!/usr/bin/env bash
+
+#write your script here...
+
+EOF
+
+chmod u+x $name
+
+}
