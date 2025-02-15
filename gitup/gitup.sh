@@ -13,8 +13,6 @@
 # - Si se desea se puede incluir el token clásico de git en una variable de entorno llamada GIT_TOKEN. Este token se obtiene online de tu repositorio de git.
 #	- En .bashr o equivalente incluir -> export GIT_TOKEN=<git_token....>, seguidamente -> source .bashrc
 # - Si no, se solicitarán credenciales del push por consola.
-# - En .bashrc o equivalente añadir un alias tal que apunte a este script
-#   alias gitup='<path/to/script" seguidamente -> source .bashrc
 
 # set -e: En caso de algun comando con error, para y sale inmediatamente.
 set -e
@@ -24,6 +22,24 @@ echo
 echo ">> git status..."
 echo
 git status -s
+
+# Git pull first to get changes of the repository
+#If env var with the token is present, pull automatically
+#else... will ask for credentials
+if ! [[ -z $GIT_TOKEN ]]
+then       
+	url="https://sec2john:"$GIT_TOKEN"@github.com/sec2john/obsidian.git"
+	echo ">> git token found in env var."
+        echo ">> pulling from url "${url/\:*\@/:<TOKEN_FILTERED>@}        
+        echo 
+	git pull "$url"
+	echo 
+else       
+	echo ">> git token NOT found in env var."        
+	echo ">> pulling from repo using user/pass credentials"
+	git pull
+	echo
+fi 
 
 echo
 echo ">> git add... "
