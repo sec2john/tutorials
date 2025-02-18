@@ -28,7 +28,7 @@ git status -s
 #else... will ask for credentials
 if ! [[ -z $GIT_TOKEN ]]
 then       
-	url="https://sec2john:"$GIT_TOKEN"@github.com/sec2john/obsidian.git"
+	url="https://myusername:"$GIT_TOKEN"@github.com/myusername/myrepo.git"
 	echo ">> git token found in env var."
         echo ">> pulling from url "${url/\:*\@/:<TOKEN_FILTERED>@}        
         echo 
