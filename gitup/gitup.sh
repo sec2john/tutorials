@@ -9,10 +9,22 @@
 # - previamente clonado (clone) y en funcionamiento (init)
 #
 # Pasos para la configuración:
-# - Configurar la url del repositorio en la variable 'url' definida más abajo
+# - Configurar el nombre de usuario de git que hará la subida en la variable "myusername" más abajo
+# - La url de git se crea en base a este esquema: https://myusername:"$GIT_TOKEN"@github.com/myusername/myrepo.git
+#	- myusername: Nombre de usuario que actúa sobre el repo (configurado en la variable myusername)
+#	- GIT_TOKEN: Env var externa con el token de git.
+#	- @github... el resto de la url se extrae de .git/config de forma automatica.
 # - Si se desea se puede incluir el token clásico de git en una variable de entorno llamada GIT_TOKEN. Este token se obtiene online de tu repositorio de git.
 #	- En .bashr o equivalente incluir -> export GIT_TOKEN=<git_token....>, seguidamente -> source .bashrc
 # - Si no, se solicitarán credenciales del push por consola.
+#
+# Nota: Crear una funcion en .bashrc llamada "gitup" tal que así:
+# gitup () 
+# { 
+#    bash ~/scripts/gitup.sh "$@"
+# }
+# Donde la ruta lleva hasta este script con permisos de ejecución. 
+# De esta forma se puede ejecutar "gitup 'message...'" en cualqueir directorio git.
 
 # set -e: En caso de algun comando con error, para y sale inmediatamente.
 set -e
