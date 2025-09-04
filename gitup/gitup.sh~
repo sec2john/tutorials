@@ -19,7 +19,7 @@ set -e
 cmtmssge=$(! [ -z $1 ] && echo "$1" || echo "$(date) - No message.") 
 
 # CONFIG ################
-myusername=""
+myusername="sec2john"
 if [ -z $myusername ]; then echo "username cannot be null. exiting..."; exit 2; fi
 echo ">> username: $username"
 
