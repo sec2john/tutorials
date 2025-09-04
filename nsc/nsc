@@ -21,8 +21,8 @@
 function nsc() {
 name=$1
 
-[ -z $name ] && { echo "-- Error. Need a name for the script."; return 1 };
-[[ ! $name == *.* ]] && { echo "-- Warning: No extension provided. sh appended."; name="${name}.sh" };
+[ -z $name ] && ( echo "-- Error. Need a name for the script."; return 1 );
+[[ ! $name == *.* ]] && (  echo "-- Warning: No extension provided. sh appended."; name="${name}.sh" );
 
 cat <<EOF > $name
 #!/usr/bin/env bash
