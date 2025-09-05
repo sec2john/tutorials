@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Lanzar OBS
+nohup setsid flatpak run com.obsproject.Studio &>/dev/null &
+while ! wmctrl -l | grep -q "^.*OBS .*"; do
+    sleep 0.2
+done
+wmctrl -r "OBS " -e 0,1920,0,1920,1080
+
+# Lanzar Terminal
+#  Absolute upper-left X:  1327
+#  Absolute upper-left Y:  249
+#  Width: 579
+#  Height: 812
+
+TERMINAL_TITLE="Shell Exercises Vertical"
+nohup setsid qterminal &>/dev/null & 
+sleep 0.5
+xdotool getactivewindow set_window --name "$TERMINAL_TITLE"
+
+# Mover y redimensionar
+wmctrl -r "$TERMINAL_TITLE" -e 0,1327,249,579,812
+
+# Lanzar Obsidian
+nohup setsid flatpak run md.obsidian.Obsidian &>/dev/null &
+sleep 1
+# Absolute upper-left X:  0
+# Absolute upper-left Y:  32
+# Width: 1299
+# Height: 1048
+wmctrl -r "Obsidian" -e 0,0,32,1299,1048 
+
+# Esperar a que abran
+sleep 3
+

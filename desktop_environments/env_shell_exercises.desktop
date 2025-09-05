@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Shell Exerc. environment
+Comment=Abrir entorno de ejercicios de la shell
+Exec=/home/sec2john/work_envs/bash_exercises_env
+Icon=utilities-x-terminal
+Terminal=true
+Type=Application
