@@ -1,0 +1,106 @@
+# Esta funcion habilita el comando "ncmd"
+# en la shell. 
+# Este comando crea la plantilla de un
+# script en bash ejecutable con muchas mas
+# funciones utiles, como ayuda, menú, validaciones
+# y permite ahorrar estos pasos: crear fichero,
+# crear shebang, asignar permisos de 
+# ejecución.
+# 
+# Se invoca así
+# > ncmd [FILENAME]
+# Si [FILENAME] es nulo devuelve un error (1)
+# Si [FILENAME] no tiene extensión se le agrega ".sh" por defecto
+#
+# Este fichero no se ejecuta. En lugar de ello
+# copia la función y pégala en tu shell.
+# Para hacerlo permanente en bash pégala en tu .bashrc
+# en zsh es un poco más complejo (pero posible)
+# Made by Sec2John.
+
+function ncmd() {
+name=$1
+
+[ -z $name ] && { 
+	echo "-- Error. Need a name for the script." 
+	return 1 
+}
+if [[ ! $name == *.* ]]; then
+	echo "-- Warning: No extension provided. sh appended."
+	name="${name}.sh"
+fi
+
+cat <<\EOF_NCMD > $name
+#!/usr/bin/env bash
+
+# === Configuration ===
+SCRIPT_NAME=$(basename "$0")
+VERSION="1.0.0"
+
+# === Utility functions ===
+
+print_help() {
+    cat << EOF
+Uso: $SCRIPT_NAME [options] [arguments]
+
+Options:
+  -h, --help        Show this help message
+  -m, --menu        Show interactive menu
+  -v, --version     Show script version
+  -f, --file <path> Specify a file (example parameter)
+
+Examples:
+  $SCRIPT_NAME --menu
+  $SCRIPT_NAME -f input.txt
+EOF
+}
+
+print_error() {
+    echo "❌ Error: $1" >&2
+}
+
+# === Menu ===
+show_menu() {
+    echo "=== $SCRIPT_NAME Menu ==="
+    select option in "Option 1" "Option 2" "Quit"; do
+        case $REPLY in
+            1) echo "You chose Option 1";;
+            2) echo "You chose Option 2";;
+            3) echo "Bye!"; exit 0;;
+            *) print_error "Invalid choice";;
+        esac
+    done
+}
+
+# === Main ===
+main() {
+    # No arguments -> show help
+    if [[ $# -eq 0 ]]; then
+        print_help
+        exit 0
+    fi
+
+    # Parse args
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)    print_help; exit 0;;
+            -v|--version) echo "$SCRIPT_NAME v$VERSION"; exit 0;;
+            -m|--menu)    show_menu; exit 0;;
+            -f|--file)    validate_file "$2"; shift;;
+            *) print_error "Unknown option: $1"; print_help; exit 1;;
+        esac
+        shift
+    done
+
+    # Continue normal execution here...
+    echo "✅ Script executed successfully!"
+}
+
+# Run main with all args
+main "$@"
+
+EOF_NCMD
+
+chmod u+x $name
+
+}
