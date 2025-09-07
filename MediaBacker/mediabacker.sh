@@ -12,6 +12,8 @@ destFolder=	#DIRECTORIO_DESTINO (opcional) pasado por parámetro y validado
 
 FILES=  #Array de ficheros formato " mtime || PATH "
 
+tmpFolder="/tmp/"
+
 
 # === Utility functions ===
 
@@ -45,6 +47,75 @@ print_error() {
     echo "❌ Error: $1" >&2
 }
 
+print_structure() {
+    local tmpfile="${2:-/tmp/mediabacker_fullstruct.tmp}"  # archivo opcional como segundo parámetro
+    
+    # Crear/limpiar el fichero antes de empezar
+    : > "$tmpfile"
+
+    awk -F"$SEPARATOR" -v outfile="$tmpfile" '
+        BEGIN {
+            monthname["01"]="Enero"; monthname["02"]="Febrero"; monthname["03"]="Marzo";
+            monthname["04"]="Abril"; monthname["05"]="Mayo"; monthname["06"]="Junio";
+            monthname["07"]="Julio"; monthname["08"]="Agosto"; monthname["09"]="Septiembre";
+            monthname["10"]="Octubre"; monthname["11"]="Noviembre"; monthname["12"]="Diciembre";
+        }
+        {
+            split($1, a, " ")      # separar timestamp
+            split(a[1], d, "-")    # YYYY-MM-DD
+            year = d[1]
+            month = d[2]
+
+            # Generar líneas para pantalla y para fichero completo
+            line_year = "    📁" year
+            line_month = "        📁" monthname[month]
+            n = split($2, parts, "/")
+            line_file = "            📄" parts[n]
+
+            # Guardar TODO en fichero completo
+            if (year != last_year) {
+                print line_year >> outfile
+            }
+            if (month != last_month) {
+                print line_month >> outfile
+            }
+            print line_file >> outfile
+
+            # Salida por pantalla con límites
+            
+				if (year != last_year) {
+					if (totalcount <= 25) {
+						print line_year
+					}
+					last_year = year
+					last_month = ""  # reset mes al cambiar de año
+				}
+
+				if (month != last_month) {
+					count = 0
+					if (totalcount <= 25) {
+						print line_month
+					}
+					last_month = month
+				}
+				
+				count++
+				totalcount++
+
+				if (totalcount <= 25) {
+					if (count <= 3) {
+						print line_file
+					} else if (count == 4) {
+						print "            [...]"
+					}   
+				}         
+			
+
+            
+        }' "$1"
+}
+
+
 # === Menu ===
 show_menu() {
     echo "=== $SCRIPT_NAME Menu ==="
@@ -77,19 +148,55 @@ validate_folder() {
 
 # === Scanner ===
 scan() {
-	echo 
+	echo
+	echo "░█▄█░█▀▀░█▀▄░▀█▀░█▀█░█▀▄░█▀█░█▀▀░█░█░█▀▀░█▀▄"
+	echo "░█░█░█▀▀░█░█░░█░░█▀█░█▀▄░█▀█░█░░░█▀▄░█▀▀░█▀▄"
+	echo "░▀░▀░▀▀▀░▀▀░░▀▀▀░▀░▀░▀▀░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀"
+	echo "                                 by Sec2John"
 	echo 
 	echo " >> Scaneando directorio $oriFolder ..."
-	readarray -t FILES < <(find "$oriFolder" -type f  -exec stat -c "%y"$SEPARATOR"%n" {} \;)
+	tmpFile=$(echo $tmpFolder"mediabacker.tmp")
+	touch $tmpFile
+		# ancho de terminal
+		cols=$(tput cols 2>/dev/null || echo 120)
+
+		# ocultar cursor y restaurarlo al salir
+		tput civis 2>/dev/null
+		trap 'printf "\r\033[2K"; tput cnorm 2>/dev/null; echo' EXIT
+
+		count=0
+		# spinner simple
+		spinner='|/-\'
+		spin_i=0
+	
+		stdbuf -oL find "$oriFolder" -type f \
+			-exec stat -c "%y"$SEPARATOR"%n" {} \; \
+			| tee $tmpFile \
+			| while IFS= read -r line; 
+				do
+					count=$((count+1))
+					# girar spinner
+					spin_i=$(((spin_i+1)%4))
+					char="${spinner:$spin_i:1}"
+					# mensaje para mostrar
+					msg="  [$char] Procesados: $count archivos"
+					# imprimir truncando al ancho de terminal
+					printf '\r\033[2K%.*s' "$((cols-1))" "$msg"
+				done	
+	#ordenamos el fichero		
+	sort "$tmpFile" -o "$tmpFile"
+	
+	readarray -t FILES < $tmpFile
 	echo " >> "
-	echo " >> El directorio contiene un total de "$((${#FILES[@]}-1))" ficheros."
+	echo " >> El directorio contiene un total de "${#FILES[@]}" ficheros."
 	#declare -p FILES
 	
 	strFILES=$(printf "%s\n" "${FILES[@]}" | sort)	
 	#echo "$strFILES"
-	echo " >> La relación Nº de ficheros / extensión es :"
+	echo " >> La relación Nº de ficheros / extensión es (Por favor, espere)...:"
 	echo
-	strRel=$(printf "%s\n" "${FILES[@]}" | awk -F"$SEPARATOR" '{print $2}' | xargs -n1 basename | sed -n 's/.*\.//p' | sort | uniq -c )
+	#strRel=$(printf "%s\n" "${FILES[@]}" | awk -F"$SEPARATOR" '{print $2}' | xargs -n1 basename | sed -n 's/.*\.//p' | sort | uniq -c )
+	strRel=$(awk -F"$SEPARATOR" '{print $2}' $tmpFile | xargs -n1 basename | sed -n 's/.*\.//p' | sort | uniq -c )
 	echo "$strRel"
 	echo
 	echo " >> Las extensiones encontradas son: "
@@ -97,48 +204,13 @@ scan() {
 	echo
 	echo "    $strExt"
 	echo
-	echo " >> Se crearía la siguiente estructura en un DIRECTORIO_DESTINO: "
-	#echo "$strFILES"
-	#echo "$strFILES" | awk -F"$SEPARATOR" '
-	#	{
-	#		split($1, a, " ")      # split the timestamp by space
-	#		date = a[1]             # take the date part (YYYY-MM-DD)
-	#
-	#		if (date != last_date) {
-	#			print "     "date          # print new date when it changes
-	#			last_date = date
-	#		}			
-	#		
-	#		n = split($2, parts, "/")   # split path by /
-	#		print "         "parts[n]              # last element is the file name
-	#		
-	#	}'
+	echo " >> Se crearía la siguiente estructura en un DIRECTORIO_DESTINO (si existe no sobreescribe, añade): "
 	
-	echo "$strFILES" | awk -F"$SEPARATOR" '
-			{
-			split($1, a, " ")      # split timestamp by space
-			date = a[1]             # extract YYYY-MM-DD
+	print_structure "$tmpFile"	
 
-			if (date != last_date) {
-				count = 0           # reset counter for new date
-				print "     " date
-				last_date = date
-			}
-
-			count++
-			totalcount++
-			if (count <= 3) {
-				n = split($2, parts, "/")   # split path by /
-				print "         " parts[n]  # last element is filename
-			} else if (count == 4) {
-				print "         [...]"      # print once when exceeding 4
-			}
-			
-			if (totalcount == 25) exit #Así no llenamos la pantalla con mucha información
-		}'
 	echo
-	echo "     [...] Salida posiblemente incompleta por ser una muestra. "
-	echo "           REVISA el fichero FICHERO y asegúrate de que lo que ves es correcto"
+	echo "     [...] Esto es una muestra."
+	echo "           REVISA el fichero /tmp/mediabacker_fullstruct.tmp y asegúrate de que lo que ves es correcto"
 	echo
 }
 
@@ -167,7 +239,7 @@ main() {
     done
 
     # Continue normal execution here...
-    echo "✅ Script executed successfully!"
+    echo ""
 }
 
 # Run main with all args
