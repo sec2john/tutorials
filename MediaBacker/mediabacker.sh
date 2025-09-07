@@ -126,13 +126,19 @@ scan() {
 			}
 
 			count++
+			totalcount++
 			if (count <= 3) {
 				n = split($2, parts, "/")   # split path by /
 				print "         " parts[n]  # last element is filename
 			} else if (count == 4) {
 				print "         [...]"      # print once when exceeding 4
 			}
+			
+			if (totalcount == 25) exit #Así no llenamos la pantalla con mucha información
 		}'
+	echo
+	echo "     [...] Salida posiblemente incompleta por ser una muestra. "
+	echo "           REVISA el fichero FICHERO y asegúrate de que lo que ves es correcto"
 	echo
 }
 
@@ -147,7 +153,7 @@ main() {
     # Parse args
     while [[ $# -gt 0 ]]; do
         case $1 in
-			-s|--scan)    validate_folder $2; 
+			-s|--scan)    validate_folder "$2"; 
 						  scan;
 						  show_menu; 
 						  exit 0;;
