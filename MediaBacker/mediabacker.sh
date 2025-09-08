@@ -2,13 +2,14 @@
 
 # === Configuration ===
 SCRIPT_NAME=$(basename "$0")
-VERSION="1.0.0"
+VERSION="1.0.2"
 
 # === Global vars ===
 
 declare -r SEPARATOR="@#¬¬#@"
 oriFolder=	#DIRECTORIO_ORIGINAL, pasado por parámetro y validado
 destFolder=	#DIRECTORIO_DESTINO (opcional) pasado por parámetro y validado
+auxFolder= #Variable auxiliar
 
 FILES=  #Array de ficheros formato " mtime || PATH "
 
@@ -44,7 +45,13 @@ EOF
 }
 
 print_error() {
-    echo "❌ Error: $1" >&2
+    echo "  ❌ Error: $1" >&2
+}
+
+ask_folder() {
+    echo
+    echo " >> Indica el nuevo $1:"
+    read -rp " >> " auxFolder        
 }
 
 print_structure() {
@@ -118,14 +125,45 @@ print_structure() {
 
 # === Menu ===
 show_menu() {
+	echo 
+	echo " >> Mostrando acciones disponibles"
+	echo 
+	echo 
     echo "=== $SCRIPT_NAME Menu ==="
-    select option in "Indicar un directorio destino" "Volver a escanear '$oriFolder'" "Copiar archivos del origen al destino" "Cortar y pegar archivos del origen al destino (peligro)" "Salir"; do
+    echo "                      "
+    echo -n "    Directorio origen: " && [ -n "$oriFolder" ] && echo -n "$oriFolder" || echo -n "(Ninguno)"; echo
+    echo -n "    Directorio destino: " && [ -n "$destFolder" ] && echo -n "$destFolder" || echo -n "(Ninguno)"; echo
+	echo
+	echo "=== $SCRIPT_NAME Menu ==="
+    echo
+    select option in "Volver a escanear '$oriFolder'" "Indicar un (nuevo) directorio origen (y reescanear)" "Indicar un (nuevo) directorio destino" "Mostrar toda la estructura (fichero /tmp/mediabacker_fullstruct.tmp)" "Crear nueva estructura en el directorio destino y COPIAR ficheros del directorio origen al directorio destino" "Crear nueva estructura en el directorio destino y MOVER ficheros del directorio origen al directorio destino" "Salir"; do
         case $REPLY in
-            1) echo "You chose Option 1";;
-            2) scan;show_menu;exit 0;;
-            3) echo "You chose Option 3";;
-            4) echo "You chose Option 3";;
-            5) echo "Bye!"; exit 0;;
+            1) scan;show_menu;exit 0;;
+            2)  ask_folder "directorio original";
+				validate_folder "$auxFolder";
+				if [[ $? == 0 ]]; 
+					then 			
+					    oriFolder="$auxFolder"
+						scan
+						show_menu
+					else
+						show_menu;
+				fi;
+				exit 0;;
+            3) ask_folder "directorio destino";
+				validate_folder "$auxFolder";
+				if [[ $? == 0 ]]; 
+					then 			
+					    destFolder="$auxFolder"
+						show_menu
+					else
+						show_menu;
+				fi;
+				exit 0;;
+            4) /usr/bin/env less /tmp/mediabacker_fullstruct.tmp; show_menu; exit 0;;
+            5) echo "5";;
+            6) echo "6";;
+            7) echo "Bye!"; exit 0;;
             *) print_error "Opción inválida";;
         esac
     done
@@ -133,17 +171,16 @@ show_menu() {
 
 # === Validation functions ===
 validate_folder() {
-    oriFolder="$1"
-    if [[ -z "$oriFolder" ]]; then
+    auxFolder="$1"
+    if [[ -z "$auxFolder" ]]; then
         print_error "Especifica un directorio de origen por favor."
-        exit 1
-    elif [[ ! -d "$oriFolder" ]] || [[ ! -r "$oriFolder" ]]; then
-        print_error "El directorio '$oriFolder' no existe o no es legible."
-        exit 1
-    fi
-    
+        return 1
+    elif [[ ! -d "$auxFolder" ]] || [[ ! -r "$auxFolder" ]]; then
+        print_error "El directorio '$auxFolder' no existe o no es legible."
+        return 1
+    fi    
+    return 0    
 }
-
 
 
 # === Scanner ===
@@ -186,9 +223,10 @@ scan() {
 	#ordenamos el fichero		
 	sort "$tmpFile" -o "$tmpFile"
 	
-	readarray -t FILES < $tmpFile
+	#readarray -t FILES < $tmpFile
 	echo " >> "
-	echo " >> El directorio contiene un total de "${#FILES[@]}" ficheros."
+	#echo " >> El directorio contiene un total de "${#FILES[@]}" ficheros."
+	echo " >> El directorio contiene un total de "$count" ficheros."
 	#declare -p FILES
 	
 	strFILES=$(printf "%s\n" "${FILES[@]}" | sort)	
@@ -212,6 +250,8 @@ scan() {
 	echo "     [...] Esto es una muestra."
 	echo "           REVISA el fichero /tmp/mediabacker_fullstruct.tmp y asegúrate de que lo que ves es correcto"
 	echo
+	echo " >> Fin del escáner."
+	echo
 }
 
 # === Main ===
@@ -222,21 +262,16 @@ main() {
         exit 0
     fi
 
-    # Parse args
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-			-s|--scan)    validate_folder "$2"; 
-						  scan;
-						  show_menu; 
-						  exit 0;;
-            -h|--help)    print_help; exit 0;;
-            -v|--version) echo "$SCRIPT_NAME v$VERSION"; exit 0;;
-            -m|--menu)    show_menu; exit 0;;
-            -f|--file)    validate_file "$2"; shift;;
-            *) print_error "Unknown option: $1"; print_help; exit 1;;
-        esac
-        shift
-    done
+	validate_folder "$1"; 
+	if [[ $? == 0 ]]; then
+		oriFolder="$1"
+		scan
+		show_menu
+	else
+		exit 1
+	fi
+    
+ 
 
     # Continue normal execution here...
     echo ""
