@@ -13,7 +13,8 @@ auxFolder= #Variable auxiliar
 
 FILES=  #Array de ficheros formato " mtime || PATH "
 
-tmpFolder="/tmp/"
+tmpFolder="/tmp"
+declare -r fullStructFile="$tmpFolder/mediabacker_fullstruct.tmp"
 
 
 # === Utility functions ===
@@ -55,7 +56,7 @@ ask_folder() {
 }
 
 print_structure() {
-    local tmpfile="${2:-/tmp/mediabacker_fullstruct.tmp}"  # archivo opcional como segundo parámetro
+    local tmpfile="${2:-$fullStructFile}"  # archivo opcional como segundo parámetro
     
     # Crear/limpiar el fichero antes de empezar
     : > "$tmpfile"
@@ -123,6 +124,37 @@ print_structure() {
 }
 
 
+copy_files() {
+	awk -F"$SEPARATOR" -v DEST="$2" '
+        BEGIN {
+            monthname["01"]="Enero"; monthname["02"]="Febrero"; monthname["03"]="Marzo";
+            monthname["04"]="Abril"; monthname["05"]="Mayo"; monthname["06"]="Junio";
+            monthname["07"]="Julio"; monthname["08"]="Agosto"; monthname["09"]="Septiembre";
+            monthname["10"]="Octubre"; monthname["11"]="Noviembre"; monthname["12"]="Diciembre";
+        }
+        {
+            split($1, a, " ")      # separar timestamp
+            split(a[1], d, "-")    # YYYY-MM-DD
+            year = d[1]
+            month = d[2]
+            n = split($2, parts, "/")
+            line_file = parts[n]
+
+            # Generar líneas para pantalla y para fichero completo
+            line_year = year
+            line_month = monthname[month]
+            
+            # crear directorios (mkdir -p)
+			cmd = "mkdir -p \"" DEST "/" line_year "/" line_month "\""
+			system(cmd)
+            
+            cmd = "cp \"" $2 "\" \"" DEST "/" line_year "/" line_month "/" line_file "\""
+            system(cmd)          
+            
+            
+        }' "$1"
+}
+
 # === Menu ===
 show_menu() {
 	echo 
@@ -136,9 +168,11 @@ show_menu() {
 	echo
 	echo "=== $SCRIPT_NAME Menu ==="
     echo
-    select option in "Volver a escanear '$oriFolder'" "Indicar un (nuevo) directorio origen (y reescanear)" "Indicar un (nuevo) directorio destino" "Mostrar toda la estructura (fichero /tmp/mediabacker_fullstruct.tmp)" "Crear nueva estructura en el directorio destino y COPIAR ficheros del directorio origen al directorio destino" "Crear nueva estructura en el directorio destino y MOVER ficheros del directorio origen al directorio destino" "Salir"; do
+    select option in "Volver a escanear '$oriFolder'" "Indicar un (nuevo) directorio origen (y reescanear)" "Indicar un (nuevo) directorio destino" "Mostrar toda la estructura (fichero $fullStructFile)" "Crear nueva estructura en el directorio destino y COPIAR ficheros del directorio origen al directorio destino" "Crear nueva estructura en el directorio destino y MOVER ficheros del directorio origen al directorio destino" "Salir"; do
         case $REPLY in
-            1) scan;show_menu;exit 0;;
+            1) 	scan;
+				show_menu;
+				exit 0;;
             2)  ask_folder "directorio original";
 				validate_folder "$auxFolder";
 				if [[ $? == 0 ]]; 
@@ -160,8 +194,16 @@ show_menu() {
 						show_menu;
 				fi;
 				exit 0;;
-            4) /usr/bin/env less /tmp/mediabacker_fullstruct.tmp; show_menu; exit 0;;
-            5) echo "5";;
+            4) 	/usr/bin/env less "$fullStructFile"; 
+				show_menu; 
+				exit 0;;
+            5) if [[ -z "$destFolder" ]]; then
+					print_error "Especifica un directorio destino primero.";
+				else
+					copy_files "$tmpFile" "$destFolder";
+				fi
+				show_menu; 
+				exit 0;;
             6) echo "6";;
             7) echo "Bye!"; exit 0;;
             *) print_error "Opción inválida";;
@@ -192,7 +234,7 @@ scan() {
 	echo "                                 by Sec2John"
 	echo 
 	echo " >> Scaneando directorio $oriFolder ..."
-	tmpFile=$(echo $tmpFolder"mediabacker.tmp")
+	tmpFile=$(echo $tmpFolder"/mediabacker.tmp")
 	touch $tmpFile
 		# ancho de terminal
 		cols=$(tput cols 2>/dev/null || echo 120)
@@ -248,7 +290,7 @@ scan() {
 
 	echo
 	echo "     [...] Esto es una muestra."
-	echo "           REVISA el fichero /tmp/mediabacker_fullstruct.tmp y asegúrate de que lo que ves es correcto"
+	echo "           REVISA el fichero $fullStructFile y asegúrate de que lo que ves es correcto"
 	echo
 	echo " >> Fin del escáner."
 	echo
