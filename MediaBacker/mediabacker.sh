@@ -16,6 +16,9 @@ FILES=  #Array de ficheros formato " mtime || PATH "
 tmpFolder="/tmp"
 declare -r fullStructFile="$tmpFolder/mediabacker_fullstruct.tmp"
 
+# ancho de terminal
+cols=$(tput cols 2>/dev/null || echo 120)
+
 
 # === Utility functions ===
 
@@ -127,6 +130,7 @@ print_structure() {
 copy_files() {
 	awk -F"$SEPARATOR" -v DEST="$2" '
         BEGIN {
+			srand()             # inicializa semilla
             monthname["01"]="Enero"; monthname["02"]="Febrero"; monthname["03"]="Marzo";
             monthname["04"]="Abril"; monthname["05"]="Mayo"; monthname["06"]="Junio";
             monthname["07"]="Julio"; monthname["08"]="Agosto"; monthname["09"]="Septiembre";
@@ -139,25 +143,59 @@ copy_files() {
             month = d[2]
             n = split($2, parts, "/")
             line_file = parts[n]
+            
+            # Renombramos caracteres especiales por un numero en DESTINO
+			N = 1000
+			r = int(rand() * N)
+            gsub(/[:*?"<>|\\\/]/, r, line_file)
 
             # Generar líneas para pantalla y para fichero completo
             line_year = year
             line_month = monthname[month]
             
             # crear directorios (mkdir -p)
-			cmd = "mkdir -p \"" DEST "/" line_year "/" line_month "\""
-			system(cmd)
+			# cmd = "mkdir -p \"" DEST "/" line_year "/" line_month "\""
+			# system(cmd)
+			#folder=DEST "/" line_year "/" line_month 
+			#print folder
             
             cmd = "cp \"" $2 "\" \"" DEST "/" line_year "/" line_month "/" line_file "\""
-            system(cmd)          
+            # print cmd
+            endpath=$2 " " DEST "/" line_year "/" line_month "/" line_file
             
+            print $2 "\x1f" DEST "/" line_year "/" line_month "/" line_file
             
-        }' "$1"
+        }' "$1"| while IFS=$'\x1f' read -r src dst; do
+        echo
+        #echo "in whilE " "$src $dst"
+        #echo "mkdir folder: $(dirname "$dst")"
+        safe_dir=$(printf "%q" "$dst")
+		mkdir -p "$(dirname "$safe_dir")"
+			#echo "DEST: "$(dirname "$dst")
+		safe_src=$(printf "%q" "$src")
+		safe_dst=$(printf "%q" "$dst")
+		#echo "copy cmd: cp $safe_src $safe_dst"
+			#echo "SRC DEST" "$src" "$dst"
+		#echo " cp command: cp $safe_src $safe_dst "
+		eval cp $safe_src $safe_dst
+			if [ $? != 0 ] 
+			then
+				print_error "No se pudo copiar $src" 
+			fi
+					count=$((count+1))
+					# girar spinner
+					spin_i=$(((spin_i+1)%4))
+					char="${spinner:$spin_i:1}"
+					# mensaje para mostrar
+					msg="  [$char] Copiando: "$((count+1))" archivos."
+					# imprimir truncando al ancho de terminal
+					printf '\r\033[2K%.*s' "$((cols-1))" "$msg"
+		done
+		echo
 }
 
 # === Menu ===
 show_menu() {
-	echo 
 	echo " >> Mostrando acciones disponibles"
 	echo 
 	echo 
@@ -236,14 +274,12 @@ scan() {
 	echo " >> Scaneando directorio $oriFolder ..."
 	tmpFile=$(echo $tmpFolder"/mediabacker.tmp")
 	touch $tmpFile
-		# ancho de terminal
-		cols=$(tput cols 2>/dev/null || echo 120)
+		
 
 		# ocultar cursor y restaurarlo al salir
 		tput civis 2>/dev/null
 		trap 'printf "\r\033[2K"; tput cnorm 2>/dev/null; echo' EXIT
 
-		count=0
 		# spinner simple
 		spinner='|/-\'
 		spin_i=0
@@ -268,7 +304,7 @@ scan() {
 	#readarray -t FILES < $tmpFile
 	echo " >> "
 	#echo " >> El directorio contiene un total de "${#FILES[@]}" ficheros."
-	echo " >> El directorio contiene un total de "$count" ficheros."
+	#echo " >> El directorio contiene un total de "$count" ficheros."
 	#declare -p FILES
 	
 	strFILES=$(printf "%s\n" "${FILES[@]}" | sort)	
@@ -290,10 +326,12 @@ scan() {
 
 	echo
 	echo "     [...] Esto es una muestra."
-	echo "           REVISA el fichero $fullStructFile y asegúrate de que lo que ves es correcto"
+	echo "           REVISA el fichero $fullStructFile (o utiliza la opcíon del menú a continuación) y asegúrate de que lo que ves es correcto"
 	echo
 	echo " >> Fin del escáner."
 	echo
+	
+	destFolder="/tmp/dest"
 }
 
 # === Main ===
