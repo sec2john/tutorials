@@ -2,7 +2,7 @@
 
 # === Configuration ===
 SCRIPT_NAME=$(basename "$0")
-VERSION="1.0.2"
+VERSION="1.0.4"
 
 # === Global vars ===
 
@@ -18,7 +18,9 @@ declare -r fullStructFile="$tmpFolder/mediabacker_fullstruct.tmp"
 
 # ancho de terminal
 cols=$(tput cols 2>/dev/null || echo 120)
-
+# spinner simple
+spinner='|/-\'
+spin_i=0
 
 # === Utility functions ===
 
@@ -49,7 +51,15 @@ EOF
 }
 
 print_error() {
-    echo "  ❌ Error: $1" >&2
+    echo "  X Error: $1" >&2
+}
+
+print_banner() {
+	echo
+	echo "  ░█▄█░█▀▀░█▀▄░▀█▀░█▀█░█▀▄░█▀█░█▀▀░█░█░█▀▀░█▀▄"
+	echo "  ░█░█░█▀▀░█░█░░█░░█▀█░█▀▄░█▀█░█░░░█▀▄░█▀▀░█▀▄"
+	echo "  ░▀░▀░▀▀▀░▀▀░░▀▀▀░▀░▀░▀▀░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀"
+	echo "                                   by Sec2John"
 }
 
 ask_folder() {
@@ -78,10 +88,10 @@ print_structure() {
             month = d[2]
 
             # Generar líneas para pantalla y para fichero completo
-            line_year = "    📁" year
-            line_month = "        📁" monthname[month]
+            line_year = "    " year
+            line_month = "        " monthname[month]
             n = split($2, parts, "/")
-            line_file = "            📄" parts[n]
+            line_file = "            " parts[n]
 
             # Guardar TODO en fichero completo
             if (year != last_year) {
@@ -196,17 +206,15 @@ copy_files() {
 
 # === Menu ===
 show_menu() {
-	echo " >> Mostrando acciones disponibles"
-	echo 
-	echo 
-    echo "=== $SCRIPT_NAME Menu ==="
-    echo "                      "
-    echo -n "    Directorio origen: " && [ -n "$oriFolder" ] && echo -n "$oriFolder" || echo -n "(Ninguno)"; echo
-    echo -n "    Directorio destino: " && [ -n "$destFolder" ] && echo -n "$destFolder" || echo -n "(Ninguno)"; echo
-	echo
-	echo "=== $SCRIPT_NAME Menu ==="
+	
+	print_banner;
+	
+    echo "==========================================================="
+    echo -n "      Directorio origen: " && [ -n "$oriFolder" ] && echo -n "$oriFolder" || echo -n "(Ninguno)"; echo
+    echo -n "      Directorio destino: " && [ -n "$destFolder" ] && echo -n "$destFolder" || echo -n "(Ninguno)"; echo
+    echo "==========================================================="
     echo
-    select option in "Volver a escanear '$oriFolder'" "Indicar un (nuevo) directorio origen (y reescanear)" "Indicar un (nuevo) directorio destino" "Mostrar toda la estructura (fichero $fullStructFile)" "Crear nueva estructura en el directorio destino y COPIAR ficheros del directorio origen al directorio destino" "Crear nueva estructura en el directorio destino y MOVER ficheros del directorio origen al directorio destino" "Salir"; do
+    select option in "Volver a escanear '$oriFolder'" "Indicar un (nuevo) directorio origen (y reescanear)" "Indicar un (nuevo) directorio destino" "Mostrar toda la estructura (fichero $fullStructFile) Pulsa 'q' para salir." "Crear nueva estructura en el directorio destino y COPIAR ficheros del directorio origen al directorio destino" "Crear nueva estructura en el directorio destino y MOVER ficheros del directorio origen al directorio destino" "Salir"; do
         case $REPLY in
             1) 	scan;
 				show_menu;
@@ -232,7 +240,8 @@ show_menu() {
 						show_menu;
 				fi;
 				exit 0;;
-            4) 	/usr/bin/env less "$fullStructFile"; 
+            4) 
+				/usr/bin/env less "$fullStructFile"; 
 				show_menu; 
 				exit 0;;
             5) if [[ -z "$destFolder" ]]; then
@@ -264,13 +273,7 @@ validate_folder() {
 
 
 # === Scanner ===
-scan() {
-	echo
-	echo "░█▄█░█▀▀░█▀▄░▀█▀░█▀█░█▀▄░█▀█░█▀▀░█░█░█▀▀░█▀▄"
-	echo "░█░█░█▀▀░█░█░░█░░█▀█░█▀▄░█▀█░█░░░█▀▄░█▀▀░█▀▄"
-	echo "░▀░▀░▀▀▀░▀▀░░▀▀▀░▀░▀░▀▀░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀"
-	echo "                                 by Sec2John"
-	echo 
+scan() {	
 	echo " >> Scaneando directorio $oriFolder ..."
 	tmpFile=$(echo $tmpFolder"/mediabacker.tmp")
 	touch $tmpFile
@@ -280,9 +283,7 @@ scan() {
 		tput civis 2>/dev/null
 		trap 'printf "\r\033[2K"; tput cnorm 2>/dev/null; echo' EXIT
 
-		# spinner simple
-		spinner='|/-\'
-		spin_i=0
+
 	
 		stdbuf -oL find "$oriFolder" -type f \
 			-exec stat -c "%y"$SEPARATOR"%n" {} \; \
@@ -294,7 +295,7 @@ scan() {
 					spin_i=$(((spin_i+1)%4))
 					char="${spinner:$spin_i:1}"
 					# mensaje para mostrar
-					msg="  [$char] Procesados: $count archivos"
+					msg="  [$char] Encontrados: $count archivos"
 					# imprimir truncando al ancho de terminal
 					printf '\r\033[2K%.*s' "$((cols-1))" "$msg"
 				done	
@@ -314,7 +315,12 @@ scan() {
 	#strRel=$(printf "%s\n" "${FILES[@]}" | awk -F"$SEPARATOR" '{print $2}' | xargs -n1 basename | sed -n 's/.*\.//p' | sort | uniq -c )
 	strRel=$(awk -F"$SEPARATOR" '{print $2}' $tmpFile | xargs -n1 basename | sed -n 's/.*\.//p' | sort | uniq -c )
 	echo "$strRel"
+	
 	echo
+	echo " Pulsa Enter para continuar..."
+	 read
+	echo
+	
 	echo " >> Las extensiones encontradas son: "
 	strExt=$( echo "$strRel" | awk -F' ' '{print $2}' | xargs)
 	echo
@@ -326,16 +332,16 @@ scan() {
 
 	echo
 	echo "     [...] Esto es una muestra."
-	echo "           REVISA el fichero $fullStructFile (o utiliza la opcíon del menú a continuación) y asegúrate de que lo que ves es correcto"
-	echo
+	echo "     REVISA el fichero $fullStructFile (o utiliza la opcíon del menú a continuación)"
+	echo "     y asegúrate de que lo que ves es correcto"
 	echo " >> Fin del escáner."
-	echo
 	
 	destFolder="/tmp/dest"
 }
 
 # === Main ===
 main() {
+	
     # No arguments -> show help
     if [[ $# -eq 0 ]]; then
         print_help
@@ -344,14 +350,22 @@ main() {
 
 	validate_folder "$1"; 
 	if [[ $? == 0 ]]; then
-		oriFolder="$1"
+		oriFolder="$1"	
+			
+		print_banner;
+		echo
+		echo " Listo para escanear el directorio orígen '$oriFolder' "
+		echo " No se realizará modificación de ningún tipo."
+		echo " Tras el escáner se ofrecerá un menú de opciones."
+		echo
+		echo " Pulsa Enter para continuar..."
+		read
+		
 		scan
 		show_menu
 	else
 		exit 1
 	fi
-    
- 
 
     # Continue normal execution here...
     echo ""
