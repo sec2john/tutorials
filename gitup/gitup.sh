@@ -33,7 +33,7 @@ cmtmssge=$(! [ -z $1 ] && echo "$1" || echo "$(date) - No message.")
 # CONFIG ################
 myusername=""
 if [ -z $myusername ]; then echo "username cannot be null. exiting..."; exit 2; fi
-echo ">> username: $username"
+echo ">> username: $myusername"
 
 #try to get url from .git/config
 #        url = https://github.com/.....
