@@ -35,18 +35,9 @@ y bien se copian o se mueven (cortar-pegar) los archivos originales al mismo don
 El principal objetivo es organizar fotografías y videos que se acumulan en un teléfono móvil,
 pero los casos de uso pueden variar.
 
-
-Options:
-  -s, --scan		(Primer paso) Realiza un escaneo del directorio y ofrece resultados
-  -m, --menu        Show interactive menu
-  -v, --version     Show script version
-  -f, --file <path> Specify a file (example parameter)		
-  -h, --help        Muestra la ayuda
-  
-
 Examples:
-  $SCRIPT_NAME --menu
-  $SCRIPT_NAME -f input.txt
+  $SCRIPT_NAME path/to/original_folder 
+  $SCRIPT_NAME path/to/original_folder path/to/destiny_folder 
 EOF
 }
 
@@ -227,6 +218,7 @@ show_menu() {
 						scan
 						show_menu
 					else
+						print_error "Directorio no válido.";
 						show_menu;
 				fi;
 				exit 0;;
@@ -237,6 +229,7 @@ show_menu() {
 					    destFolder="$auxFolder"
 						show_menu
 					else
+					    print_error "Directorio no válido.";
 						show_menu;
 				fi;
 				exit 0;;
@@ -252,7 +245,7 @@ show_menu() {
 				show_menu; 
 				exit 0;;
             6) echo "6";;
-            7) echo "Bye!"; exit 0;;
+            7) echo "Hasta la vista!"; exit 0;;
             *) print_error "Opción inválida";;
         esac
     done
@@ -276,14 +269,11 @@ validate_folder() {
 scan() {	
 	echo " >> Scaneando directorio $oriFolder ..."
 	tmpFile=$(echo $tmpFolder"/mediabacker.tmp")
-	touch $tmpFile
-		
+	touch $tmpFile		
 
 		# ocultar cursor y restaurarlo al salir
 		tput civis 2>/dev/null
 		trap 'printf "\r\033[2K"; tput cnorm 2>/dev/null; echo' EXIT
-
-
 	
 		stdbuf -oL find "$oriFolder" -type f \
 			-exec stat -c "%y"$SEPARATOR"%n" {} \; \
@@ -336,7 +326,7 @@ scan() {
 	echo "     y asegúrate de que lo que ves es correcto"
 	echo " >> Fin del escáner."
 	
-	destFolder="/tmp/dest"
+	#destFolder="/tmp/dest"
 }
 
 # === Main ===
@@ -347,6 +337,11 @@ main() {
         print_help
         exit 0
     fi
+    
+    validate_folder "$2"; 
+	if [[ $? == 0 ]]; then
+		destFolder="$2"	
+	fi
 
 	validate_folder "$1"; 
 	if [[ $? == 0 ]]; then
@@ -366,9 +361,7 @@ main() {
 	else
 		exit 1
 	fi
-
-    # Continue normal execution here...
-    echo ""
+    
 }
 
 # Run main with all args
