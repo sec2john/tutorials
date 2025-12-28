@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 # Lanzar OBS
-nohup setsid flatpak run com.obsproject.Studio &>/dev/null &
+# Si esta instalado con flatpak
+# nohup setsid flatpak run com.obsproject.Studio &>/dev/null &
+# Si está instalado como paquete:
+nohup setsid obs &>/dev/null &
+
 while ! wmctrl -l | grep -q "^.*OBS .*"; do
     sleep 0.2
 done
