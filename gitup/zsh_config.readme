@@ -1,0 +1,25 @@
+
+# Crear un directorio de funciones zsh, por ejemplo ~/.zsh
+mkdir .zsh
+
+#añadir un fichero "gitup" a este directorio con la funcion 
+nano .zsh/gitup
+
+gitup ()
+{
+   #El script está situado en el directorio de git (tutorials) compartido con bash
+   bash ~/scripts/gitup.sh "$@" 
+}
+
+#añadir estas lineas a .zshrc
+
+export GIT_TOKEN="ghp_tb... [...]"
+#añadimos el directorio al path de zsh de funciones
+fpath=(~/.zsh $fpath)
+#cargamos la funcion concreta (nombre d ela funcion "gitup")
+autoload -Uz gitup
+
+
+#recargamos en la shell zsh actual
+source .zshrc
+
