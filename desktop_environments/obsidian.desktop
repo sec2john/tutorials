@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Obsidian
+Exec=zsh -ci "/home/sec2john/scripts/obsidian.sh"
+Icon=md.obsidian.Obsidian
+Type=Application
+Terminal=false
+Categories=Office;TextEditor;
