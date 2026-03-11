@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Obsidian
+Name=Obsidian_auto
 Exec=zsh -ci "/home/sec2john/scripts/obsidian.sh"
 Icon=md.obsidian.Obsidian
 Type=Application
