@@ -19,4 +19,4 @@ Type=Application
 
 *.desktop debe tener permisos de ejecución
 
-Paso3: (Ubuntu based distros) Buscar el nombre en el buscador de programas "Show applications" -> Añadir a favoritos
+Paso3: (Ubuntu based distros) Buscar el nombre en el buscador de programas "Show applications" POR EL NOMBRE "Name" en el *.desktop copmpleto-> Añadir a favoritos
